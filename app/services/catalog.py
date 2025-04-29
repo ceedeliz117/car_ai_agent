@@ -19,3 +19,7 @@ class CatalogService:
         make_lower = make.lower()
         results = self.catalog_df[self.catalog_df['make'].str.lower() == make_lower]
         return results
+
+    def search_by_model(self, model: str):
+        model_lower = model.lower()
+        return self.catalog_df[self.catalog_df['model'].str.lower().str.contains(model_lower, na=False)]
