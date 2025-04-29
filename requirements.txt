@@ -9,6 +9,7 @@ python-multipart
 pandas
 pathlib
 openai
+openai==0.28
 black
 isort
 pylint
