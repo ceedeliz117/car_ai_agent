@@ -28,26 +28,22 @@ async def whatsapp_webhook(
         reply = KavakInfoService.get_sedes_info()
     elif "financiamiento" in user_message or "pago a meses" in user_message:
         reply = KavakInfoService.get_payment_plans_info()
-    elif "qué es kavak" in user_message or "kavak" in user_message:
+    elif "kavak" in user_message and len(user_message.split()) < 4:
         reply = KavakInfoService.get_company_info()
     else:
         search_by_make = catalog_service.search_by_make(user_message)
         search_by_model = catalog_service.search_by_model(user_message)
 
         if not search_by_make.empty:
-            first_car = search_by_make.iloc[0]
-            reply = (
-                f"🚗 Encontré este auto disponible:\n"
-                f"{first_car['make']} {first_car['model']} {first_car['year']} - "
-                f"${first_car['price']:,.0f} MXN."
-            )
+            autos = search_by_make.head(3)
+            reply = "🚗 Autos que encontré para ti:\n"
+            for _, car in autos.iterrows():
+                reply += f"- {car['make']} {car['model']} ({car['year']}) - ${car['price']:,.0f} MXN\n"
         elif not search_by_model.empty:
-            first_car = search_by_model.iloc[0]
-            reply = (
-                f"🚗 Encontré este modelo disponible:\n"
-                f"{first_car['make']} {first_car['model']} {first_car['year']} - "
-                f"${first_car['price']:,.0f} MXN."
-            )
+            autos = search_by_model.head(3)
+            reply = "🚗 Modelos que encontré para ti:\n"
+            for _, car in autos.iterrows():
+                reply += f"- {car['make']} {car['model']} ({car['year']}) - ${car['price']:,.0f} MXN\n"
         else:
             reply = openai_service.ask(user_message, kavak_context)
 
