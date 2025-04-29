@@ -5,6 +5,7 @@ from app.services.openai_client import OpenAIClientService
 from app.services.catalog import CatalogService
 
 from pathlib import Path
+import pandas as pd
 
 app = FastAPI(title="Kavak Sales Bot")
 
