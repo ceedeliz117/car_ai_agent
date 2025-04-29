@@ -1,5 +1,6 @@
 import requests
 
+
 def test_health_check():
     base_url = "http://localhost:8000"
 

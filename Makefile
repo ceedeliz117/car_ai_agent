@@ -7,9 +7,8 @@ run:
 	docker-compose up -d
 
 lint:
-	black .
-	isort .
-	pylint app/ tests/
+	docker-compose run --rm backend isort .
+	docker-compose run --rm backend black .
 stop:
 	docker-compose stop
 
@@ -26,8 +25,6 @@ logs:
 test:
 	docker-compose exec backend pytest
 
-lint:
-	docker-compose exec backend pylint app
 
 clean:
 	docker-compose down --rmi all --volumes --remove-orphans
