@@ -70,7 +70,7 @@ def handle_whatsapp_message(Body: str, From: str):
                 reply = "❌ Por favor elige entre 36, 48 o 60 meses."
             return make_twilio_response(reply)
 
-    if user_message == "sí" and From in active_search_results:
+    if user_message == "1" and From in active_search_results:
         autos = active_search_results[From]
         selected_car = autos.iloc[0].to_dict()
 
@@ -81,6 +81,10 @@ def handle_whatsapp_message(Body: str, From: str):
             "months": None,
         }
         reply = "💵 ¡Perfecto! ¿Cuánto podrías dar como enganche? (ejemplo: 50000)"
+        return make_twilio_response(reply)
+
+    if user_message == "2":
+        reply = "✅ ¡Perfecto! Si quieres ver otros autos o hacer otra búsqueda, solo envía un mensaje."
         return make_twilio_response(reply)
 
     if user_message.isdigit() and From in active_search_results:
@@ -99,7 +103,7 @@ def handle_whatsapp_message(Body: str, From: str):
                 f"Precio: ${selected_car['price']:,.0f} MXN\n"
                 f"Bluetooth: {selected_car.get('bluetooth', 'N/A')}\n"
                 f"CarPlay: {selected_car.get('car_play', 'N/A')}\n\n"
-                "💬 ¿Te gustaría que simulemos una opción de financiamiento para este auto? (responde 'sí' o 'no')"
+                "💬 ¿Te gustaría que simulemos una opción de financiamiento para este auto?\n\nResponde 1 para SÍ o 2 para NO."
             )
         else:
             reply = "❌ El número seleccionado no es válido. Por favor selecciona un número de la lista."
@@ -126,7 +130,6 @@ def handle_whatsapp_message(Body: str, From: str):
 
         for token in tokens:
             search_result = catalog_service.search_catalog(token)
-
             if not search_result.empty:
                 found_autos = pd.concat([found_autos, search_result])
 
