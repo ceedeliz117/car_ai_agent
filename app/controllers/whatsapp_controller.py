@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 from fastapi.responses import Response
 
-from app.core.constants import BRAND_ABBREVIATIONS
+from app.core.constants import BRAND_ABBREVIATIONS,STOPWORDS
 from app.services.catalog import CatalogService
 from app.services.kavak_info import KavakInfoService
 from app.services.openai_client import OpenAIClientService
@@ -166,6 +166,7 @@ def handle_whatsapp_message(Body: str, From: str):
         return make_twilio_response(reply)
 
     tokens = user_message.split()
+    tokens = [token for token in tokens if token not in STOPWORDS]
     tokens = [BRAND_ABBREVIATIONS.get(token, token) for token in tokens]
     user_message_processed = " ".join(tokens)
 

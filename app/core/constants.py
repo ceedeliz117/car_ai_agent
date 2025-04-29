@@ -11,3 +11,7 @@ BRAND_ABBREVIATIONS = {
     "audi": "Audi",
     "mazda": "Mazda",
 }
+STOPWORDS = {
+    "un", "una", "el", "la", "los", "las",
+    "quiero", "busco", "necesito", "deseo", "comprar",
+}
