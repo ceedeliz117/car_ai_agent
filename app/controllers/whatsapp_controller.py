@@ -1,5 +1,3 @@
-# app/controllers/whatsapp_controller.py
-
 from pathlib import Path
 
 import pandas as pd
@@ -19,6 +17,7 @@ with open(context_path, "r", encoding="utf-8") as f:
 
 active_search_results = {}
 active_sessions = {}
+waiting_for_financing_decision = {}
 
 
 def make_twilio_response(message: str) -> Response:
@@ -32,6 +31,26 @@ def make_twilio_response(message: str) -> Response:
 
 def handle_whatsapp_message(Body: str, From: str):
     user_message = Body.lower().strip()
+
+    if waiting_for_financing_decision.get(From):
+        if user_message == "1":
+            autos = active_search_results[From]
+            selected_car = autos.iloc[0].to_dict()
+
+            active_sessions[From] = {
+                "selected_car": selected_car,
+                "phase": "waiting_for_downpayment",
+                "downpayment": None,
+                "months": None,
+            }
+            reply = "💵 ¡Perfecto! ¿Cuánto podrías dar como enganche? (ejemplo: 50000)"
+        elif user_message == "2":
+            reply = "✅ ¡Perfecto! Si quieres ver otros autos o hacer otra búsqueda, solo envía un mensaje."
+        else:
+            reply = "❌ Por favor responde 1 para SÍ o 2 para NO."
+
+        waiting_for_financing_decision.pop(From, None)
+        return make_twilio_response(reply)
 
     if From in active_sessions:
         session = active_sessions[From]
@@ -91,6 +110,8 @@ def handle_whatsapp_message(Body: str, From: str):
 
             active_search_results[From] = autos.iloc[[selected_index]]
 
+            waiting_for_financing_decision[From] = True
+
             reply = (
                 f"🚗 Detalles del auto seleccionado:\n\n"
                 f"Marca: {selected_car['make']}\n"
@@ -106,23 +127,6 @@ def handle_whatsapp_message(Body: str, From: str):
         else:
             reply = "❌ El número seleccionado no es válido. Por favor selecciona un número de la lista."
 
-        return make_twilio_response(reply)
-
-    if user_message == "1" and From in active_search_results:
-        autos = active_search_results[From]
-        selected_car = autos.iloc[0].to_dict()
-
-        active_sessions[From] = {
-            "selected_car": selected_car,
-            "phase": "waiting_for_downpayment",
-            "downpayment": None,
-            "months": None,
-        }
-        reply = "💵 ¡Perfecto! ¿Cuánto podrías dar como enganche? (ejemplo: 50000)"
-        return make_twilio_response(reply)
-
-    if user_message == "2":
-        reply = "✅ ¡Perfecto! Si quieres ver otros autos o hacer otra búsqueda, solo envía un mensaje."
         return make_twilio_response(reply)
 
     tokens = user_message.split()
