@@ -1,4 +1,7 @@
 import math
+import threading
+import time
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -19,6 +22,8 @@ with open(context_path, "r", encoding="utf-8") as f:
 active_search_results = {}
 active_sessions = {}
 waiting_for_financing_decision = {}
+session_last_active = {}
+SESSION_TIMEOUT_SECONDS = 300
 
 
 def make_twilio_response(message: str) -> Response:
@@ -36,8 +41,33 @@ def safe_get(value, fallback="No disponible"):
     return value
 
 
+def session_cleaner():
+    while True:
+        now = datetime.utcnow()
+        to_delete = []
+
+        for phone, last_active in session_last_active.items():
+            elapsed_seconds = (now - last_active).total_seconds()
+            if elapsed_seconds > SESSION_TIMEOUT_SECONDS:
+                to_delete.append(phone)
+
+        for phone in to_delete:
+            print(f"🧹 Limpiando sesión inactiva: {phone}")
+            active_sessions.pop(phone, None)
+            active_search_results.pop(phone, None)
+            waiting_for_financing_decision.pop(phone, None)
+            session_last_active.pop(phone, None)
+
+        time.sleep(60)
+
+
+threading.Thread(target=session_cleaner, daemon=True).start()
+
+
 def handle_whatsapp_message(Body: str, From: str):
     user_message = Body.lower().strip()
+
+    session_last_active[From] = datetime.utcnow()
 
     if waiting_for_financing_decision.get(From):
         if user_message == "1":
