@@ -12,6 +12,15 @@ BRAND_ABBREVIATIONS = {
     "mazda": "Mazda",
 }
 STOPWORDS = {
-    "un", "una", "el", "la", "los", "las",
-    "quiero", "busco", "necesito", "deseo", "comprar",
+    "un",
+    "una",
+    "el",
+    "la",
+    "los",
+    "las",
+    "quiero",
+    "busco",
+    "necesito",
+    "deseo",
+    "comprar",
 }

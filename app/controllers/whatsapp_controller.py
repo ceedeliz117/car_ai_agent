@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 from fastapi.responses import Response
 
-from app.core.constants import BRAND_ABBREVIATIONS,STOPWORDS
+from app.core.constants import BRAND_ABBREVIATIONS, STOPWORDS
 from app.services.catalog import CatalogService
 from app.services.kavak_info import KavakInfoService
 from app.services.openai_client import OpenAIClientService
@@ -27,6 +27,7 @@ SESSION_TIMEOUT_SECONDS = 300
 
 
 def make_twilio_response(message: str) -> Response:
+    print(f"📤 Enviando respuesta Twilio:\n{message}\n")
     response_xml = f"""
     <Response>
         <Message>{message}</Message>
@@ -52,7 +53,7 @@ def session_cleaner():
                 to_delete.append(phone)
 
         for phone in to_delete:
-            print(f"🧹 Limpiando sesión inactiva: {phone}")
+            print(f"🧹 Limpiando sesión inactiva por timeout: {phone}")
             active_sessions.pop(phone, None)
             active_search_results.pop(phone, None)
             waiting_for_financing_decision.pop(phone, None)
@@ -66,11 +67,14 @@ threading.Thread(target=session_cleaner, daemon=True).start()
 
 def handle_whatsapp_message(Body: str, From: str):
     user_message = Body.lower().strip()
+    print(f"📥 Mensaje recibido de {From}: {user_message}")
 
     session_last_active[From] = datetime.utcnow()
 
     if waiting_for_financing_decision.get(From):
+        print("🧠 Esperando respuesta para simulación de financiamiento")
         if user_message == "1":
+            print("✅ Usuario aceptó simulación")
             autos = active_search_results[From]
             selected_car = autos.iloc[0].to_dict()
 
@@ -82,8 +86,10 @@ def handle_whatsapp_message(Body: str, From: str):
             }
             reply = "💵 ¡Perfecto! ¿Cuánto podrías dar como enganche? (ejemplo: 50000)"
         elif user_message == "2":
+            print("❌ Usuario rechazó simulación")
             reply = "✅ ¡Perfecto! Si quieres ver otros autos o hacer otra búsqueda, solo envía un mensaje."
         else:
+            print("⚠️ Respuesta inválida en decisión de financiamiento")
             reply = "❌ Por favor responde 1 para SÍ o 2 para NO."
 
         waiting_for_financing_decision.pop(From, None)
@@ -91,6 +97,7 @@ def handle_whatsapp_message(Body: str, From: str):
 
     if From in active_sessions:
         session = active_sessions[From]
+        print(f"⚙️ Sesión activa detectada: fase {session['phase']}")
 
         if session["phase"] == "waiting_for_downpayment":
             if user_message.isdigit():
@@ -99,16 +106,19 @@ def handle_whatsapp_message(Body: str, From: str):
                 max_downpayment = price * 0.7
 
                 if downpayment > max_downpayment:
+                    print("⚠️ Enganche mayor al 70% permitido")
                     reply = (
                         f"❌ El enganche que propones (${downpayment:,.0f} MXN) "
                         f"supera el 70% del valor del auto (${price:,.0f} MXN).\n"
                         "Por favor ingresa un monto de enganche más bajo."
                     )
                 else:
+                    print(f"✅ Enganche aceptado: ${downpayment}")
                     session["downpayment"] = downpayment
                     session["phase"] = "waiting_for_months"
                     reply = "⏳ ¿En cuántos meses te gustaría pagar? (elige entre 36, 48 o 60 meses)"
             else:
+                print("❌ Enganche no numérico")
                 reply = "❌ Por favor ingresa un número válido para el enganche."
 
             return make_twilio_response(reply)
@@ -124,6 +134,7 @@ def handle_whatsapp_message(Body: str, From: str):
                 total_to_pay = loan_amount * (1 + interest_rate)
                 monthly_payment = total_to_pay / months
 
+                print(f"✅ Crédito simulado para {months} meses")
                 reply = (
                     f"💵 Tu simulación:\n\n"
                     f"Enganche: ${downpayment:,.0f} MXN\n"
@@ -135,10 +146,13 @@ def handle_whatsapp_message(Body: str, From: str):
 
                 del active_sessions[From]
             else:
+                print("❌ Plazo inválido")
                 reply = "❌ Por favor elige entre 36, 48 o 60 meses."
+
             return make_twilio_response(reply)
 
     if user_message.isdigit() and From in active_search_results:
+        print("📄 Usuario eligió auto por número")
         autos = active_search_results[From]
         selected_index = int(user_message) - 1
 
@@ -161,10 +175,12 @@ def handle_whatsapp_message(Body: str, From: str):
                 "Responde 1 para SÍ o 2 para NO."
             )
         else:
+            print("❌ Número de auto seleccionado fuera de rango")
             reply = "❌ El número seleccionado no es válido. Por favor selecciona un número de la lista."
 
         return make_twilio_response(reply)
 
+    print("🔎 Procesando búsqueda en catálogo o fallback OpenAI")
     tokens = user_message.split()
     tokens = [token for token in tokens if token not in STOPWORDS]
     tokens = [BRAND_ABBREVIATIONS.get(token, token) for token in tokens]
@@ -198,6 +214,7 @@ def handle_whatsapp_message(Body: str, From: str):
                 reply += f"{idx}. {safe_get(car['make'])} {safe_get(car['model'])} ({safe_get(car['year'])}) - ${safe_get(car['price']):,.0f} MXN\n"
             reply += "\n🔢 Responde el número del auto que te interesa para enviarte más detalles."
         else:
+            print("🤖 Fallback a OpenAI")
             reply = openai_service.ask(user_message_processed, kavak_context)
 
     return make_twilio_response(reply)
