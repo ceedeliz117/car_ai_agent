@@ -31,17 +31,24 @@ async def whatsapp_webhook(
     elif "kavak" in user_message and len(user_message.split()) < 4:
         reply = KavakInfoService.get_company_info()
     else:
-        search_by_make = catalog_service.search_by_make(user_message)
-        search_by_model = catalog_service.search_by_model(user_message)
+        tokens = user_message.split()
 
-        if not search_by_make.empty:
-            autos = search_by_make.head(3)
+        found_autos = pd.DataFrame()
+
+        for token in tokens:
+            search_by_make = catalog_service.search_by_make(token)
+            search_by_model = catalog_service.search_by_model(token)
+
+            if not search_by_make.empty:
+                found_autos = pd.concat([found_autos, search_by_make])
+
+            if not search_by_model.empty:
+                found_autos = pd.concat([found_autos, search_by_model])
+
+        if not found_autos.empty:
+            found_autos = found_autos.drop_duplicates()
+            autos = found_autos.head(3)
             reply = "🚗 Autos que encontré para ti:\n"
-            for _, car in autos.iterrows():
-                reply += f"- {car['make']} {car['model']} ({car['year']}) - ${car['price']:,.0f} MXN\n"
-        elif not search_by_model.empty:
-            autos = search_by_model.head(3)
-            reply = "🚗 Modelos que encontré para ti:\n"
             for _, car in autos.iterrows():
                 reply += f"- {car['make']} {car['model']} ({car['year']}) - ${car['price']:,.0f} MXN\n"
         else:
