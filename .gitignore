@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environments
+.env
+
+# Docker
+*.log
+.envrc
+docker-compose.override.yml
+
+# IDEs
+.vscode/
+.idea/

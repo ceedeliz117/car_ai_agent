@@ -6,6 +6,10 @@ install:
 run:
 	docker-compose up -d
 
+lint:
+	black .
+	isort .
+	pylint app/ tests/
 stop:
 	docker-compose stop
 

@@ -6,3 +6,9 @@ httpx
 pytest
 pydantic-settings
 python-multipart
+pandas
+pathlib
+openai
+black
+isort
+pylint
