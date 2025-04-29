@@ -8,7 +8,7 @@ class CatalogService:
 
     def _load_catalog(self) -> pd.DataFrame:
         try:
-            df = pd.read_csv(self.catalog_path)
+            df = pd.read_csv(self.catalog_path, skipinitialspace=True)
             print("✅ Catálogo cargado correctamente.")
             return df
         except Exception as e:
