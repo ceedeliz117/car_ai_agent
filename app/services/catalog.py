@@ -19,13 +19,53 @@ class CatalogService:
             print(f"❌ Error cargando catálogo: {e}")
             return pd.DataFrame()
 
-    def search_by_make(self, make: str):
-        make_lower = make.lower()
-        results = self.catalog_df[self.catalog_df["make"].str.lower() == make_lower]
-        return results
+    def search_catalog(self, query: str) -> pd.DataFrame:
+        """
+        Búsqueda generalizada por todas las columnas relevantes: make, model, version, year, bluetooth, car_play.
+        """
+        query_lower = query.lower()
+        masks = []
 
-    def search_by_model(self, model: str):
-        model_lower = model.lower()
-        return self.catalog_df[
-            self.catalog_df["model"].str.lower().str.contains(model_lower, na=False)
-        ]
+        for column in ["make", "model", "version"]:
+            if column in self.catalog_df.columns:
+                mask = (
+                    self.catalog_df[column]
+                    .astype(str)
+                    .str.lower()
+                    .str.contains(query_lower, na=False)
+                )
+                masks.append(mask)
+
+        if query.isdigit() and "year" in self.catalog_df.columns:
+            mask_year = (
+                self.catalog_df["year"].astype(str).str.contains(query, na=False)
+            )
+            masks.append(mask_year)
+
+        if "bluetooth" in self.catalog_df.columns and (
+            "bluetooth" in query_lower or "bluetooth" in query_lower
+        ):
+            mask_bt = (
+                self.catalog_df["bluetooth"]
+                .astype(str)
+                .str.contains("sí", case=False, na=False)
+            )
+            masks.append(mask_bt)
+
+        if "car_play" in self.catalog_df.columns and (
+            "carplay" in query_lower or "car play" in query_lower
+        ):
+            mask_cp = (
+                self.catalog_df["car_play"]
+                .astype(str)
+                .str.contains("sí", case=False, na=False)
+            )
+            masks.append(mask_cp)
+
+        if masks:
+            combined_mask = masks[0]
+            for m in masks[1:]:
+                combined_mask = combined_mask | m
+            return self.catalog_df[combined_mask]
+
+        return pd.DataFrame()
