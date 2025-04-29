@@ -1,18 +1,19 @@
-from fastapi import FastAPI, Request, Form
-from app.core.config import settings
-from fastapi.responses import PlainTextResponse
+from fastapi import FastAPI, Form
+from fastapi.responses import Response
 
 app = FastAPI(title="Kavak Sales Bot")
 
-@app.get("/")
-async def root():
-    return {"message": "Kavak Sales Bot is running!"}
-
-@app.post("/webhook", response_class=PlainTextResponse)
+@app.post("/webhook")
 async def whatsapp_webhook(
-    request: Request,
-    body: str = Form(...),
-    from_number: str = Form(...),
+    Body: str = Form(...),
+    From: str = Form(...),
 ):
-    print(f"📩 Mensaje recibido de {from_number}: {body}")
-    return "Mensaje recibido correctamente."
+    print(f"📩 Mensaje recibido de {From}: {Body}")
+    reply = "🚗 ¡Hola! Soy tu asesor virtual de Kavak. ¿Qué tipo de auto estás buscando hoy?"
+
+    response_xml = f"""
+    <Response>
+        <Message>{reply}</Message>
+    </Response>
+    """
+    return Response(content=response_xml.strip(), media_type="application/xml")
