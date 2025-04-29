@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -27,6 +28,12 @@ def make_twilio_response(message: str) -> Response:
     </Response>
     """
     return Response(content=response_xml.strip(), media_type="application/xml")
+
+
+def safe_get(value, fallback="No disponible"):
+    if pd.isna(value) or (isinstance(value, float) and math.isnan(value)):
+        return fallback
+    return value
 
 
 def handle_whatsapp_message(Body: str, From: str):
@@ -109,18 +116,17 @@ def handle_whatsapp_message(Body: str, From: str):
             selected_car = autos.iloc[selected_index]
 
             active_search_results[From] = autos.iloc[[selected_index]]
-
             waiting_for_financing_decision[From] = True
 
             reply = (
                 f"🚗 Detalles del auto seleccionado:\n\n"
-                f"Marca: {selected_car['make']}\n"
-                f"Modelo: {selected_car['model']}\n"
-                f"Año: {selected_car['year']}\n"
-                f"Versión: {selected_car.get('version', 'N/A')}\n"
-                f"Precio: ${selected_car['price']:,.0f} MXN\n"
-                f"Bluetooth: {selected_car.get('bluetooth', 'N/A')}\n"
-                f"CarPlay: {selected_car.get('car_play', 'N/A')}\n\n"
+                f"Marca: {safe_get(selected_car['make'])}\n"
+                f"Modelo: {safe_get(selected_car['model'])}\n"
+                f"Año: {safe_get(selected_car['year'])}\n"
+                f"Versión: {safe_get(selected_car.get('version'))}\n"
+                f"Precio: ${safe_get(selected_car['price']):,.0f} MXN\n"
+                f"Bluetooth: {safe_get(selected_car.get('bluetooth'), 'NO')}\n"
+                f"CarPlay: {safe_get(selected_car.get('car_play'), 'NO')}\n\n"
                 "💬 ¿Te gustaría que simulemos una opción de financiamiento para este auto?\n\n"
                 "Responde 1 para SÍ o 2 para NO."
             )
@@ -158,7 +164,7 @@ def handle_whatsapp_message(Body: str, From: str):
             active_search_results[From] = autos
             reply = "🚗 Autos que encontré para ti:\n\n"
             for idx, (_, car) in enumerate(autos.iterrows(), 1):
-                reply += f"{idx}. {car['make']} {car['model']} ({car['year']}) - ${car['price']:,.0f} MXN\n"
+                reply += f"{idx}. {safe_get(car['make'])} {safe_get(car['model'])} ({safe_get(car['year'])}) - ${safe_get(car['price']):,.0f} MXN\n"
             reply += "\n🔢 Responde el número del auto que te interesa para enviarte más detalles."
         else:
             reply = openai_service.ask(user_message_processed, kavak_context)
