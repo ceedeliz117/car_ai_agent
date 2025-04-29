@@ -3,7 +3,7 @@ from pathlib import Path
 
 class CatalogService:
     def __init__(self):
-        self.catalog_path = Path(__file__).parent.parent.parent / "data" / "catalog.csv"
+        self.catalog_path = Path(__file__).parent.parent.parent / "data" / "sample_caso_ai_engineer.csv"
         self.catalog_df = self._load_catalog()
 
     def _load_catalog(self) -> pd.DataFrame:
