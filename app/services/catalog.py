@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -19,11 +20,13 @@ class CatalogService:
             print(f"❌ Error cargando catálogo: {e}")
             return pd.DataFrame()
 
+
     def search_catalog(self, query: str) -> pd.DataFrame:
         """
         Búsqueda generalizada por todas las columnas relevantes: make, model, version, year, bluetooth, car_play.
         """
         query_lower = query.lower()
+        escaped_query = re.escape(query_lower)
         masks = []
 
         for column in ["make", "model", "version"]:
@@ -32,19 +35,17 @@ class CatalogService:
                     self.catalog_df[column]
                     .astype(str)
                     .str.lower()
-                    .str.contains(query_lower, na=False)
+                    .str.contains(escaped_query, na=False)
                 )
                 masks.append(mask)
 
         if query.isdigit() and "year" in self.catalog_df.columns:
             mask_year = (
-                self.catalog_df["year"].astype(str).str.contains(query, na=False)
+                self.catalog_df["year"].astype(str).str.contains(escaped_query, na=False)
             )
             masks.append(mask_year)
 
-        if "bluetooth" in self.catalog_df.columns and (
-            "bluetooth" in query_lower or "bluetooth" in query_lower
-        ):
+        if "bluetooth" in self.catalog_df.columns and ("bluetooth" in query_lower):
             mask_bt = (
                 self.catalog_df["bluetooth"]
                 .astype(str)
