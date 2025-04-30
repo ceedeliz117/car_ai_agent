@@ -203,6 +203,7 @@ def handle_whatsapp_message(Body: str, From: str):
 
         for token in tokens:
             search_result = catalog_service.search_catalog(token)
+            print(f"🔍 Buscando coincidencias con token: '{token}'")
             if not search_result.empty:
                 found_autos = pd.concat([found_autos, search_result])
 

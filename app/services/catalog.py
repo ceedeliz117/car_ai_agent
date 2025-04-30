@@ -20,7 +20,6 @@ class CatalogService:
             print(f"❌ Error cargando catálogo: {e}")
             return pd.DataFrame()
 
-
     def search_catalog(self, query: str) -> pd.DataFrame:
         """
         Búsqueda generalizada por todas las columnas relevantes: make, model, version, year, bluetooth, car_play.
@@ -41,7 +40,9 @@ class CatalogService:
 
         if query.isdigit() and "year" in self.catalog_df.columns:
             mask_year = (
-                self.catalog_df["year"].astype(str).str.contains(escaped_query, na=False)
+                self.catalog_df["year"]
+                .astype(str)
+                .str.contains(escaped_query, na=False)
             )
             masks.append(mask_year)
 
@@ -67,6 +68,8 @@ class CatalogService:
             combined_mask = masks[0]
             for m in masks[1:]:
                 combined_mask = combined_mask | m
+
+            print(f"🔧 Coincidencias encontradas: {combined_mask.sum()}")
             return self.catalog_df[combined_mask]
 
         return pd.DataFrame()
