@@ -100,8 +100,10 @@ def handle_whatsapp_message(Body: str, From: str):
                 "months": None,
             }
             reply = "💵 ¡Perfecto! ¿Cuánto podrías dar como enganche? (ejemplo: 50000)"
+            waiting_for_financing_decision.pop(From, None)
         elif user_message == "2":
             reply = "✅ ¡Perfecto! Si quieres ver otros autos o hacer otra búsqueda, solo envía un mensaje."
+            waiting_for_financing_decision.pop(From, None)
         else:
             last_prompt = (
                 "💬 ¿Te gustaría que simulemos una opción de financiamiento para este auto?\n\n"
@@ -109,7 +111,6 @@ def handle_whatsapp_message(Body: str, From: str):
             )
             reply = fallback_with_repeat(last_prompt)
 
-        waiting_for_financing_decision.pop(From, None)
         return make_twilio_response(reply)
 
     if From in active_sessions:
@@ -231,6 +232,11 @@ def handle_whatsapp_message(Body: str, From: str):
             reply += "\n🔢 Responde el número del auto que te interesa para enviarte más detalles."
         else:
             print("🤖 Fallback a OpenAI")
-            reply = openai_service.ask(user_message_processed, kavak_context)
-
+            if len(user_message_processed) < 4 or all(len(t) < 3 for t in tokens):
+                reply = (
+                    "❌ Disculpa, no entendí tu mensaje. ¿Podrías escribirlo nuevamente?\n"
+                    "Puedes preguntarme por una marca, modelo o financiamiento."
+                )
+            else:
+                reply = openai_service.ask(user_message_processed, kavak_context)
     return make_twilio_response(reply)
