@@ -35,7 +35,7 @@ class CatalogService:
                     self.catalog_df[column]
                     .astype(str)
                     .str.lower()
-                    .str.contains(escaped_query, na=False)
+                    .str.contains(escaped_query, na=False, case=False)
                 )
                 masks.append(mask)
 
