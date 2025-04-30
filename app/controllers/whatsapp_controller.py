@@ -1,6 +1,8 @@
 import math
+import string
 import threading
 import time
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
@@ -24,6 +26,17 @@ active_sessions = {}
 waiting_for_financing_decision = {}
 session_last_active = {}
 SESSION_TIMEOUT_SECONDS = 300
+
+
+def clean_token(token: str) -> str:
+    """Elimina puntuación y acentos de un token individual."""
+    token = token.translate(str.maketrans("", "", string.punctuation))  # remueve signos
+    token = "".join(
+        c
+        for c in unicodedata.normalize("NFD", token)
+        if unicodedata.category(c) != "Mn"
+    )  # remueve acentos
+    return token.lower().strip()
 
 
 def make_twilio_response(message: str) -> Response:
@@ -184,6 +197,7 @@ def handle_whatsapp_message(Body: str, From: str):
     print("🔎 Procesando búsqueda en catálogo o fallback OpenAI")
     tokens = user_message.split()
     tokens = [token for token in tokens if token not in STOPWORDS]
+    tokens = [clean_token(token) for token in tokens]
     tokens = [BRAND_ABBREVIATIONS.get(token, token) for token in tokens]
     user_message_processed = " ".join(tokens)
 
