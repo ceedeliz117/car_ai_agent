@@ -36,6 +36,10 @@ def make_twilio_response(message: str) -> Response:
     return Response(content=response_xml.strip(), media_type="application/xml")
 
 
+def fallback_with_repeat(last_prompt: str) -> str:
+    return "❌ Disculpa, no entendí tu mensaje. ¿Podrías repetirlo?\n\n" + last_prompt
+
+
 def safe_get(value, fallback="No disponible"):
     if pd.isna(value) or (isinstance(value, float) and math.isnan(value)):
         return fallback
@@ -72,9 +76,7 @@ def handle_whatsapp_message(Body: str, From: str):
     session_last_active[From] = datetime.utcnow()
 
     if waiting_for_financing_decision.get(From):
-        print("🧠 Esperando respuesta para simulación de financiamiento")
         if user_message == "1":
-            print("✅ Usuario aceptó simulación")
             autos = active_search_results[From]
             selected_car = autos.iloc[0].to_dict()
 
@@ -86,11 +88,13 @@ def handle_whatsapp_message(Body: str, From: str):
             }
             reply = "💵 ¡Perfecto! ¿Cuánto podrías dar como enganche? (ejemplo: 50000)"
         elif user_message == "2":
-            print("❌ Usuario rechazó simulación")
             reply = "✅ ¡Perfecto! Si quieres ver otros autos o hacer otra búsqueda, solo envía un mensaje."
         else:
-            print("⚠️ Respuesta inválida en decisión de financiamiento")
-            reply = "❌ Por favor responde 1 para SÍ o 2 para NO."
+            last_prompt = (
+                "💬 ¿Te gustaría que simulemos una opción de financiamiento para este auto?\n\n"
+                "Responde 1 para SÍ o 2 para NO."
+            )
+            reply = fallback_with_repeat(last_prompt)
 
         waiting_for_financing_decision.pop(From, None)
         return make_twilio_response(reply)
@@ -106,20 +110,18 @@ def handle_whatsapp_message(Body: str, From: str):
                 max_downpayment = price * 0.7
 
                 if downpayment > max_downpayment:
-                    print("⚠️ Enganche mayor al 70% permitido")
                     reply = (
                         f"❌ El enganche que propones (${downpayment:,.0f} MXN) "
                         f"supera el 70% del valor del auto (${price:,.0f} MXN).\n"
                         "Por favor ingresa un monto de enganche más bajo."
                     )
                 else:
-                    print(f"✅ Enganche aceptado: ${downpayment}")
                     session["downpayment"] = downpayment
                     session["phase"] = "waiting_for_months"
                     reply = "⏳ ¿En cuántos meses te gustaría pagar? (elige entre 36, 48 o 60 meses)"
             else:
-                print("❌ Enganche no numérico")
-                reply = "❌ Por favor ingresa un número válido para el enganche."
+                last_prompt = "💵 ¿Cuánto podrías dar como enganche? (ejemplo: 50000)"
+                reply = fallback_with_repeat(last_prompt)
 
             return make_twilio_response(reply)
 
@@ -134,7 +136,6 @@ def handle_whatsapp_message(Body: str, From: str):
                 total_to_pay = loan_amount * (1 + interest_rate)
                 monthly_payment = total_to_pay / months
 
-                print(f"✅ Crédito simulado para {months} meses")
                 reply = (
                     f"💵 Tu simulación:\n\n"
                     f"Enganche: ${downpayment:,.0f} MXN\n"
@@ -146,8 +147,8 @@ def handle_whatsapp_message(Body: str, From: str):
 
                 del active_sessions[From]
             else:
-                print("❌ Plazo inválido")
-                reply = "❌ Por favor elige entre 36, 48 o 60 meses."
+                last_prompt = "⏳ ¿En cuántos meses te gustaría pagar? (elige entre 36, 48 o 60 meses)"
+                reply = fallback_with_repeat(last_prompt)
 
             return make_twilio_response(reply)
 
