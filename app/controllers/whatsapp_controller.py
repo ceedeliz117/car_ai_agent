@@ -12,6 +12,7 @@ from fastapi.responses import Response
 
 from app.core.constants import BRAND_ABBREVIATIONS, STOPWORDS
 from app.core.utils import normalizar_texto
+from app.core.validators import es_placa_valida_cdMX
 from app.services.catalog import CatalogService
 from app.services.kavak_info import KavakInfoService
 from app.services.openai_client import OpenAIClientService
@@ -28,6 +29,8 @@ active_search_results = {}
 active_sessions = {}
 waiting_for_financing_decision = {}
 session_last_active = {}
+waiting_for_plate = {}
+
 SESSION_TIMEOUT_SECONDS = 300
 
 
@@ -114,17 +117,38 @@ def handle_whatsapp_message(Body: str, From: str):
         # Detectar placas tipo ABC123 o ABC123D
         match = re.search(r"\b([A-Z]{3}\d{3}[A-Z]?)\b", user_message_raw.upper())
         if match:
-            plate = match.group(1)
-            enviar_placa_a_sqs(plate, From)
-            return make_twilio_response(
-                f"🔎 Estamos consultando las multas de la placa *{plate}*. Te avisaremos en breve."
-            )
+            plate = match.group(1).upper()
+            if es_placa_valida_cdMX(plate):
+                enviar_placa_a_sqs(plate, From)
+                return make_twilio_response(
+                    f"🔎 Estamos consultando las multas de la placa *{plate}*. Te avisaremos en breve."
+                )
+            else:
+                return make_twilio_response(
+                    "❌ La placa que enviaste no parece válida para CDMX. Asegúrate de usar un formato como ABC123 o ABC123D."
+                )
+
         else:
+            waiting_for_plate[From] = True
             return make_twilio_response(
                 "🚗 Claro, puedo ayudarte con eso. Por favor escribe la *placa del vehículo* que deseas consultar, como por ejemplo: ABC123 o NSZ314B."
             )
 
     session_last_active[From] = datetime.utcnow()
+
+    if waiting_for_plate.get(From):
+        match = re.search(r"\b([A-Z]{3}\d{3}[A-Z]?)\b", user_message_raw.upper())
+        if match:
+            plate = match.group(1)
+            enviar_placa_a_sqs(plate, From)
+            del waiting_for_plate[From]
+            return make_twilio_response(
+                f"🔎 Estamos consultando las multas de la placa *{plate}*. Te avisaremos en breve."
+            )
+        else:
+            return make_twilio_response(
+                "❌ No detecté la placa. Por favor escríbela como: ABC123 o NSZ314B."
+            )
 
     if waiting_for_financing_decision.get(From):
         if user_message == "1":
