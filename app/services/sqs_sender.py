@@ -5,7 +5,7 @@ import boto3
 
 QUEUE_URL = os.getenv("SQS_QUEUE_URL")
 
-sqs = boto3.client("sqs", region_name="us-east-1")
+sqs = boto3.client("sqs", region_name="us-east-2")
 
 
 def enviar_placa_a_sqs(placa: str, telefono: str):
