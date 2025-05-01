@@ -1,4 +1,5 @@
 import math
+import re
 import string
 import threading
 import time
@@ -10,9 +11,11 @@ import pandas as pd
 from fastapi.responses import Response
 
 from app.core.constants import BRAND_ABBREVIATIONS, STOPWORDS
+from app.core.utils import normalizar_texto
 from app.services.catalog import CatalogService
 from app.services.kavak_info import KavakInfoService
 from app.services.openai_client import OpenAIClientService
+from app.services.sqs_sender import enviar_placa_a_sqs
 
 openai_service = OpenAIClientService()
 catalog_service = CatalogService()
@@ -83,8 +86,43 @@ threading.Thread(target=session_cleaner, daemon=True).start()
 
 
 def handle_whatsapp_message(Body: str, From: str):
-    user_message = Body.lower().strip()
+    user_message_raw = Body.strip()
+    user_message = normalizar_texto(user_message_raw)
+
     print(f"📥 Mensaje recibido de {From}: {user_message}")
+    multas_keywords = [
+        "multa",
+        "multas",
+        "infraccion",
+        "infracciones",
+        "placa",
+        "tenencia",
+        "adeudo",
+        "adeudos",
+        "tarjeta de circulacion",
+        "licencia",
+        "transito",
+        "pago de placas",
+        "verifica si debo",
+        "debo pagar",
+        "consultar placa",
+    ]
+
+    if any(keyword in user_message for keyword in multas_keywords):
+        print("🧾 Detectamos intención de consultar multas")
+
+        # Detectar placas tipo ABC123 o ABC123D
+        match = re.search(r"\b([A-Z]{3}\d{3}[A-Z]?)\b", user_message_raw.upper())
+        if match:
+            plate = match.group(1)
+            enviar_placa_a_sqs(plate, From)
+            return make_twilio_response(
+                f"🔎 Estamos consultando las multas de la placa *{plate}*. Te avisaremos en breve."
+            )
+        else:
+            return make_twilio_response(
+                "🚗 Claro, puedo ayudarte con eso. Por favor escribe la *placa del vehículo* que deseas consultar, como por ejemplo: ABC123 o NSZ314B."
+            )
 
     session_last_active[From] = datetime.utcnow()
 
