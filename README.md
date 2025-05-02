@@ -25,7 +25,7 @@ Este bot simula el comportamiento de un agente comercial de **Kavak**, ayudando 
 - Docker Compose
 - Make
   - macOS/Linux: Generalmente preinstalado
-  - Windows: Instalar con WSL o `choco install make`
+  - Windows: Instalar con WSL o `choco install make` (se requiere choco para windows)
 - Cuenta en OpenAI (API Key)
 - Cuenta en Twilio (Sandbox de WhatsApp)
 
@@ -75,7 +75,25 @@ Form data:
 ```
 
 6. Configura Twilio Sandbox webhook a `https://xxxx.ngrok.io/webhook`
+## 🧪 Probar el Bot vía WhatsApp
+Para probar este bot en tiempo real desde tu propio WhatsApp, sigue estos pasos:
 
+1. Abre WhatsApp desde tu celular.
+2. Envía el siguiente mensaje:
+   ```
+   join point-outer
+   ```
+   al número:
+   ```
+   +1 415 523 8886
+   ```
+3. Después de unirte al sandbox, puedes interactuar directamente con el bot.
+4. Por ejemplo, escribe “Hola”, “Quiero un auto económico” o “Tengo una multa” para empezar.
+
+👉 También puedes acceder directamente escaneando el siguiente enlace:
+[https://wa.me/14155238886?text=join%20point-outer](https://wa.me/14155238886?text=join%20point-outer)
+
+Este número está conectado actualmente a una instancia EC2 en AWS que ejecuta el bot activamente. Es una prueba pública segura y monitoreada.
 ## 🧰 Bonus: Multas con Visión por Computadora
 
 Este bot incluye un flujo adicional para analizar **multas vehiculares** mediante un worker conectado a una cola **AWS SQS**. Este worker usa un modelo entrenado con TensorFlow Lite para procesar imágenes y reconocer placas vehiculares, retornando las multas asociadas.
