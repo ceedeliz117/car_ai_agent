@@ -14,3 +14,5 @@ black
 isort
 pylint
 boto3
+pytest
+pytest-mock

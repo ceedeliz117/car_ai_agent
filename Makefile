@@ -23,7 +23,7 @@ logs:
 	docker-compose logs -f backend
 
 test:
-	docker-compose exec backend pytest
+	docker-compose exec backend env PYTHONPATH=. pytest tests --maxfail=5 --disable-warnings -q
 
 
 clean:

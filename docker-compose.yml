@@ -10,4 +10,5 @@ services:
       - .env
     volumes:
       - .:/app
+      - ~/.aws:/root/.aws:ro
     restart: unless-stopped
