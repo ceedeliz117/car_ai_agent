@@ -107,11 +107,58 @@ make test
 
 ## 🚀 Producción y Roadmap
 
-- Despliegue: AWS ECS
-- Seguridad: Validar webhook Twilio, manejar secretos con AWS SSM o Vault
-- QA: Automatizar tests con GitHub Actions + Pytest
-- Observabilidad: Logs estructurados, trazas por usuario
-- Evaluación: KPIs de sesión, ratio de alucinaciones, feedback usuario
+### ¿Cómo pondrías esto en producción?
+1. **Despliegue Backend (Bot FastAPI)**:
+   - Ya contenerizado, puede desplegarse en **AWS ECS con Fargate** o en **EC2 autoscalable**.
+   - Webhook de Twilio apuntará a un **Application Load Balancer (ALB)** con HTTPS gestionado por ACM.
+   - Configuración de entorno como claves y tokens se moverán a **AWS Secrets Manager** para seguridad.
+
+2. **Despliegue del Worker de Multas**:
+   - Worker separado en otra instancia EC2 con Docker, escuchando mensajes de SQS.
+   - Escalable horizontalmente mediante **Auto Scaling Group** si se espera alto volumen.
+
+3. **Monitoreo y Logs**:
+   - Uso de **CloudWatch Logs** para trazabilidad de ambos servicios.
+   - Alarmas por latencia, errores o volumen de mensajes SQS.
+
+---
+
+### ¿Cómo evaluarías el desempeño del agente?
+1. **Métricas funcionales:**
+   - Número de sesiones iniciadas / completadas.
+   - Promedio de turnos por sesión.
+   - Porcentaje de sesiones que llegan a financiamiento exitoso.
+
+2. **Evaluación de calidad conversacional:**
+   - Tasa de fallbacks (“no entendí” / uso innecesario del LLM).
+   - Número de respuestas que involucran al LLM.
+   - Detección de alucinaciones usando prompts sin contexto válido.
+
+3. **Feedback del usuario:**
+   - Respuestas de satisfacción al cierre: “¿Te fue útil esta sesión? 👍👎”.
+   - Registro manual de mensajes con etiquetas para análisis.
+
+---
+
+### ¿Cómo probarías que una nueva versión del agente no tiene retroceso en su funcionalidad?
+1. **Pruebas Unitarias:**
+   - Ya implementadas con Pytest (`make test`) para flujos clave: autos, financiamiento, multas.
+
+2. **Pruebas de Integración:**
+   - Uso de `TestClient` de FastAPI para simular mensajes y validar respuestas completas.
+   - Fixtures y mocks para aislar llamadas a OpenAI y SQS.
+
+3. **Entorno de Staging:**
+   - Webhook apuntando a entorno aislado (ngrok o subdominio staging) con sandbox de Twilio.
+   - Validación manual y con scripts automáticos.
+
+4. **CI/CD:**
+   - GitHub Actions ejecutando `make test` en cada PR o push a rama `develop` o `main`.
+   - Validación de cobertura de código, errores, formato y regresiones lógicas.
+
+5. **Comparación de Logs:**
+   - Exportar logs por sesión antes/después del despliegue.
+   - Comparar si las respuestas son consistentes para mismos inputs.
 
 ## 🔹 Diagramas
 
