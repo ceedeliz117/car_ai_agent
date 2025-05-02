@@ -34,7 +34,7 @@ Este bot simula el comportamiento de un agente comercial de **Kavak**, ayudando 
 1. Clona el repositorio:
 
 ```bash
-git clone https://github.com/usuario/car_ai_agent.git
+git clone https://github.com/ceedeliz117/car_ai_agent.git
 cd car_ai_agent
 ```
 
