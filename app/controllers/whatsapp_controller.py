@@ -103,8 +103,13 @@ def handle_whatsapp_message(Body: str, From: str):
     fallback_response = process_catalog_or_fallback(user_message, From)
 
     if (
-        (From in active_sessions or waiting_for_plate.get(From) or waiting_for_financing_decision.get(From))
-        and (From not in active_search_results or active_search_results[From].empty or len(user_message.strip()) <= 3)
+        From in active_sessions
+        or waiting_for_plate.get(From)
+        or waiting_for_financing_decision.get(From)
+    ) and (
+        From not in active_search_results
+        or active_search_results[From].empty
+        or len(user_message.strip()) <= 3
     ):
         print(
             "⚠️ Resultado sin contexto válido o palabra muy corta durante un flujo. Respuesta no confiable, limpiando sesión."
