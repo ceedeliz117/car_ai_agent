@@ -174,7 +174,7 @@ class OpenAIClientService:
 
             elif name == "process_plate_or_fine_intent":
                 plate = args.get("placa") or args.get("plate")
-                phone = args.get("telefono") or args.get("phone")
+                phone = session_id
                 conv_manager.add_message(
                     session_id,
                     "assistant",
