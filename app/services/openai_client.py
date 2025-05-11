@@ -5,6 +5,7 @@ import openai
 
 from app.services.tools import (
     get_car_details_by_index,
+    get_user_preferences,
     process_plate_or_fine_intent,
     search_catalog_car,
     simulate_financing,
@@ -109,6 +110,17 @@ class OpenAIClientService:
                     },
                 },
             },
+            {
+                "name": "get_user_preferences",
+                "description": "Pregunta al usuario sus preferencias generales antes de recomendar autos.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "phone": {"type": "string", "description": "Número del usuario"}
+                    },
+                    "required": ["phone"],
+                },
+            },
         ]
 
         response = openai.ChatCompletion.create(
@@ -122,68 +134,87 @@ class OpenAIClientService:
             name = message["function_call"]["name"]
             args = json.loads(message["function_call"]["arguments"])
 
-            if name == "process_plate_or_fine_intent":
-                print("🛠️ LLM está invocando tool: consultar_multas")
+            # Ejecutar la función real
+            if name == "search_catalog_car":
+                args["phone"] = session_id
+                data = search_catalog_car(**args)
+
+            elif name == "simulate_financing":
+                args["phone"] = session_id
+                data = simulate_financing(conv_manager=conv_manager, **args)
+
+                if "error" in data:
+                    error_map = {
+                        "MISSING_PRICE": "❌ No tengo el precio del auto. Por favor selecciona un auto antes de simular el financiamiento.",
+                        "MISSING_DOWNPAYMENT": f"¿Con cuánto quieres iniciar como enganche? El mínimo es el 10% del valor del auto (al menos ${data.get('min_downpayment', 0):,} MXN).",
+                        "DOWNPAYMENT_TOO_LOW": f"❌ El enganche es muy bajo. El mínimo es ${data.get('min_downpayment', 0):,} MXN.",
+                        "DOWNPAYMENT_TOO_HIGH": f"❌ El enganche es muy alto. El máximo es ${data.get('max_downpayment', 0):,} MXN.",
+                        "MISSING_MONTHS": "¿A cuántos meses te gustaría financiarlo? Por ejemplo, puedes elegir 36, 48 o 60 meses.",
+                    }
+                    return error_map.get(
+                        data["error"], "❌ Hubo un error en la simulación."
+                    )
+
+            elif name == "get_car_details_by_index":
+                args["phone"] = session_id
+                data = get_car_details_by_index(
+                    index=args["index"], phone=args["phone"]
+                )
+
+                if "error" in data:
+                    if data["error"] == "NO_SEARCH_RESULTS":
+                        return "❌ No tengo autos recientes para mostrar. Primero realiza una búsqueda."
+                    elif data["error"] == "INVALID_INDEX":
+                        return f"❌ El número que seleccionaste no es válido. Hay {data['available_range']} autos en la lista."
+
+                conv_manager.set_attribute(session_id, "selected_car", data)
+
+            elif name == "get_user_preferences":
+                data = get_user_preferences(phone=session_id)
+
+            elif name == "process_plate_or_fine_intent":
                 plate = args.get("placa") or args.get("plate")
                 phone = args.get("telefono") or args.get("phone")
-
                 conv_manager.add_message(
                     session_id,
                     "assistant",
                     f"[invocando función consultar_multas para placa: {plate}]",
                 )
                 return process_plate_or_fine_intent(plate=plate, phone=phone)
-            elif name == "search_catalog_car":
-                args["phone"] = session_id
-                reply = search_catalog_car(**args)
-                conv_manager.add_message(session_id, "assistant", reply)
-                return reply
-            elif name == "get_car_details_by_index":
-                if "index" not in args and user_message.lower().strip() in [
-                    "sí",
-                    "simúlalo",
-                    "hazlo",
-                    "vamos",
-                    "ok",
-                ]:
-                    selected_car = conv_manager.get_attribute(
-                        session_id, "selected_car"
-                    )
-                    if selected_car:
-                        return simulate_financing(
-                            conv_manager=conv_manager, phone=session_id
-                        )
 
-                args["phone"] = session_id
-                selected_car = get_car_details_by_index(
-                    index=args["index"], phone=args["phone"]
-                )
-                conv_manager.set_attribute(session_id, "selected_car", selected_car)
-                conv_manager.add_message(session_id, "assistant", selected_car)
-                return selected_car
-
-            elif name == "simulate_financing":
-                if "price" not in args:
-                    selected_car = conv_manager.get_attribute(
-                        session_id, "selected_car"
-                    )
-                    if selected_car:
-                        args["price"] = selected_car.get("precio")
-
-                args["phone"] = session_id
-                reply = simulate_financing(conv_manager=conv_manager, **args)
-
-                conv_manager.set_attribute(
-                    session_id,
-                    "last_financing",
+            followup_messages = (
+                [{"role": "system", "content": context}]
+                + conv_manager.get_history(session_id)
+                + [
                     {
-                        "downpayment": args["downpayment"],
-                        "months": args["months"],
-                        "price": args["price"],
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": f"call_{name}",
+                                "type": "function",
+                                "function": {
+                                    "name": name,
+                                    "arguments": json.dumps(args),
+                                },
+                            }
+                        ],
                     },
-                )
+                    {
+                        "role": "tool",
+                        "tool_call_id": f"call_{name}",
+                        "name": name,
+                        "content": json.dumps(data),
+                    },
+                ]
+            )
 
-                return reply
+            response = openai.ChatCompletion.create(
+                model="gpt-4o", messages=followup_messages
+            )
+
+            reply = response.choices[0].message["content"]
+            conv_manager.add_message(session_id, "assistant", reply)
+            return reply
 
         reply = message["content"]
         conv_manager.add_message(session_id, "assistant", reply)
