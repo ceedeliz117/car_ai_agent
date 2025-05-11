@@ -327,3 +327,16 @@ make test
 ---
 
 🌟 *Proyecto construido para el challenge de AI Engineer con enfoque pragmático, seguro, reproducible y escalable.*
+
+
+
+
+UPDATE:
+
+
+🌟 *Versión mejorada post-feedback: ahora con razonamiento flexible, herramientas desacopladas, redacción libre y cumplimiento total del reto.*
+
+Primero que nada, muchas gracias por tomarse el tiempo de revisar mi entrega. Me gustaría comentar que, inicialmente, interpreté el objetivo del reto como una simulación del comportamiento de un LLM, enfocándome fuertemente en la parte técnica, la arquitectura y la integración del bot. Reconozco que esto fue una falta de comprensión de mi parte sobre la intención del ejercicio, y lamento si eso desvió el enfoque esperado.
+Justamente por eso, tomé estos dos días adicionales para reevaluar mi enfoque y rediseñar la solución, esta vez priorizando la correcta orquestación de herramientas por parte del modelo, el uso contextual del LLM y una conversación fluida y adaptable. Puse especial empeño en que el asistente ahora gestione todo mediante razonamiento natural, evitando respuestas rígidas o hardcodeadas, como fue señalado en el feedback.
+Si existe la posibilidad de una segunda revisión con esta nueva versión, estaría realmente agradecido. Para mí, esta experiencia ha sido muy valiosa y me encantaría que mi evolución y el nuevo enfoque pudieran ser considerados con una nueva perspectiva.
+Muchas gracias de antemano por su tiempo y comprensión.
